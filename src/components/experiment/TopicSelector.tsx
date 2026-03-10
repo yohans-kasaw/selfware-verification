@@ -9,7 +9,7 @@ const PREDEFINED_TOPICS = {
 };
 
 interface TopicSelectorProps {
-  onSelect: (topic: string, subtopic: string) => void;
+  onSelect: (topic: string, subtopic: string, wordLimit: number) => void;
   disabled?: boolean;
 }
 
@@ -20,6 +20,7 @@ export function TopicSelector({ onSelect, disabled }: TopicSelectorProps) {
   
   const [customTopic, setCustomTopic] = useState('');
   const [customSubtopic, setCustomSubtopic] = useState('');
+  const [wordLimit, setWordLimit] = useState(120);
 
   const handleTopicChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newTopic = e.target.value;
@@ -29,10 +30,10 @@ export function TopicSelector({ onSelect, disabled }: TopicSelectorProps) {
 
   const handleConfirm = () => {
     if (mode === 'preset') {
-      onSelect(selectedTopic, selectedSubtopic);
+      onSelect(selectedTopic, selectedSubtopic, wordLimit);
     } else {
       if (customTopic.trim() && customSubtopic.trim()) {
-        onSelect(customTopic.trim(), customSubtopic.trim());
+        onSelect(customTopic.trim(), customSubtopic.trim(), wordLimit);
       }
     }
   };
@@ -116,6 +117,19 @@ export function TopicSelector({ onSelect, disabled }: TopicSelectorProps) {
             </div>
           </>
         )}
+
+        <div className="pt-4 border-t border-slate-200 mt-2">
+          <label className="block text-sm font-medium text-slate-700 mb-1">Word Limit of Response</label>
+          <input
+            type="number"
+            min="10"
+            max="1000"
+            value={wordLimit}
+            onChange={(e) => setWordLimit(parseInt(e.target.value) || 120)}
+            disabled={disabled}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
         <button
           onClick={handleConfirm}

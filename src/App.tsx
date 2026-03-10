@@ -7,8 +7,31 @@ import { ExperimentView } from './components/experiment/ExperimentView';
 import type { Profile, Message, AppView } from './types';
 
 function App() {
-  const [apiKey, setApiKey] = useState(import.meta.env.VITE_GEMINI_API_KEY || '');
-  const [view, setView] = useState<AppView>('chat');
+  const availableModels = (import.meta.env.VITE_AVAILABLE_MODELS || 'gemini-3.1-pro-preview').split(',').map((m: string) => m.trim()).filter(Boolean);
+
+  const [apiKey, setApiKey] = useState(() => {
+    return localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '';
+  });
+  const [modelId, setModelId] = useState(() => {
+    const saved = localStorage.getItem('gemini_model_id');
+    return saved && availableModels.includes(saved) ? saved : availableModels[0] || 'gemini-3.1-pro-preview';
+  });
+
+  useEffect(() => {
+    if (apiKey) {
+      localStorage.setItem('gemini_api_key', apiKey);
+    } else {
+      localStorage.removeItem('gemini_api_key');
+    }
+  }, [apiKey]);
+
+  useEffect(() => {
+    if (modelId) {
+      localStorage.setItem('gemini_model_id', modelId);
+    }
+  }, [modelId]);
+
+  const [view, setView] = useState<AppView>('experiment');
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -86,7 +109,7 @@ function App() {
       const genAI = new GoogleGenerativeAI(apiKey);
       const profile = profiles.find(p => p.id === profileId);
       
-      const modelConfig: any = { model: "gemini-3.1-pro-preview" };
+      const modelConfig: any = { model: modelId };
       if (profile && profile.systemInstruction) {
         modelConfig.systemInstruction = profile.systemInstruction;
       }
@@ -138,15 +161,6 @@ function App() {
           
           <div className="flex gap-2">
             <button 
-              onClick={() => setView('chat')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                view === 'chat' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-              }`}
-            >
-              <ChatBubbleIcon />
-              <span className="hidden sm:inline">Chat</span>
-            </button>
-            <button 
               onClick={() => setView('experiment')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 view === 'experiment' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
@@ -154,6 +168,15 @@ function App() {
             >
               <ExperimentIcon />
               <span className="hidden sm:inline">Experiment Lab</span>
+            </button>
+            <button 
+              onClick={() => setView('chat')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                view === 'chat' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+              }`}
+            >
+              <ChatBubbleIcon />
+              <span className="hidden sm:inline">Chat</span>
             </button>
             
             {view === 'chat' && (
@@ -183,6 +206,19 @@ function App() {
             />
           </div>
           
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Model</label>
+            <select 
+              value={modelId} 
+              onChange={(e) => setModelId(e.target.value)}
+              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer"
+            >
+              {availableModels.map((m: string) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+
           {view === 'chat' && (
             <div className="flex-1">
               <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Personality Profile</label>
@@ -202,7 +238,7 @@ function App() {
         {/* Main Content Area */}
         {view === 'experiment' ? (
           <div className="flex-1 overflow-y-auto bg-slate-100 p-6">
-            <ExperimentView apiKey={apiKey} profiles={profiles} />
+            <ExperimentView apiKey={apiKey} profiles={profiles} modelId={modelId} />
           </div>
         ) : (
           <>

@@ -8,9 +8,10 @@ import type { Profile } from '../../types';
 interface ExperimentViewProps {
   apiKey: string;
   profiles: Profile[];
+  modelId: string;
 }
 
-export function ExperimentView({ apiKey, profiles }: ExperimentViewProps) {
+export function ExperimentView({ apiKey, profiles, modelId }: ExperimentViewProps) {
   const [round, setRound] = useState(1);
   const [topic, setTopic] = useState({ main: '', sub: '' });
   const [generatedPrompt, setGeneratedPrompt] = useState('');
@@ -33,7 +34,7 @@ export function ExperimentView({ apiKey, profiles }: ExperimentViewProps) {
     setTotalScores(initialScores);
   }, [profiles]);
 
-  const handleGeneratePrompt = async (mainTopic: string, subTopic: string) => {
+  const handleGeneratePrompt = async (mainTopic: string, subTopic: string, wordLimit: number) => {
     if (!apiKey) {
       alert("Please provide a Gemini API Key in the Chat view first.");
       return;
@@ -47,9 +48,9 @@ export function ExperimentView({ apiKey, profiles }: ExperimentViewProps) {
 
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite-preview" });
+      const model = genAI.getGenerativeModel({ model: modelId });
       
-      const promptInstruction = `Create a complex, thought-provoking prompt about the subtopic "${subTopic}" within the broader topic of "${mainTopic}". The prompt should be challenging enough to test different AI personalities. Do not answer the prompt yourself, just write the question/instruction for another AI to answer. make the prompt not more than 20 words.`;
+      const promptInstruction = `Create a complex, thought-provoking prompt about the subtopic "${subTopic}" within the broader topic of "${mainTopic}". The prompt should be challenging enough to test different AI personalities. Do not answer the prompt yourself, just write the question/instruction for another AI to answer. and also on the prompt specify the out shouldn't be more than ${wordLimit} words. Make the prompt not more than 30.`;
       
       const result = await model.generateContent(promptInstruction);
       setGeneratedPrompt(result.response.text().trim());
@@ -72,7 +73,7 @@ export function ExperimentView({ apiKey, profiles }: ExperimentViewProps) {
       
       // Map over profiles to create an array of promises
       const generatePromises = profiles.map(async (profile) => {
-        const modelConfig: any = { model: "gemini-3.1-pro-preview" };
+        const modelConfig: any = { model: modelId };
         if (profile.systemInstruction) {
           modelConfig.systemInstruction = profile.systemInstruction;
         }
@@ -225,9 +226,9 @@ export function ExperimentView({ apiKey, profiles }: ExperimentViewProps) {
                <p className="text-sm text-blue-800">{generatedPrompt}</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex flex-col gap-8">
               {responses.map((response, index) => (
-                <div key={response.profileId} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                <div key={response.profileId} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col w-full">
                   <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-100">
                      <span className="text-sm font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">Response {index + 1}</span>
                      <StarRating 
@@ -235,7 +236,7 @@ export function ExperimentView({ apiKey, profiles }: ExperimentViewProps) {
                        onRate={(score) => handleRate(response.profileId, score)} 
                      />
                   </div>
-                  <div className="flex-1 overflow-y-auto max-h-64 prose prose-sm prose-slate">
+                  <div className="prose prose-sm md:prose-base prose-slate max-w-none">
                     <div dangerouslySetInnerHTML={{ __html: response.content.replace(/\n/g, '<br/>') }} />
                   </div>
                 </div>
