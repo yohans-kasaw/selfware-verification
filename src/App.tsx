@@ -1,22 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { BotIcon, ClearIcon, ErrorIcon, SendIcon, ChatBubbleIcon } from './components/Icons';
+import { BotIcon, ClearIcon, ErrorIcon, SendIcon, ChatBubbleIcon, ExperimentIcon } from './components/Icons';
 import { ChatMessage } from './components/ChatMessage';
-
-interface Profile {
-  id: string;
-  name: string;
-  systemInstruction: string;
-}
-
-interface Message {
-  role: 'user' | 'model';
-  content: string;
-}
+import { ExperimentView } from './components/experiment/ExperimentView';
+import type { Profile, Message, AppView } from './types';
 
 function App() {
   const [apiKey, setApiKey] = useState(import.meta.env.VITE_GEMINI_API_KEY || '');
+  const [view, setView] = useState<AppView>('chat');
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -31,8 +23,10 @@ function App() {
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, loading]);
+    if (view === 'chat') {
+      scrollToBottom();
+    }
+  }, [messages, loading, view]);
 
   useEffect(() => {
     const loadProfiles = async () => {
@@ -92,7 +86,7 @@ function App() {
       const genAI = new GoogleGenerativeAI(apiKey);
       const profile = profiles.find(p => p.id === profileId);
       
-      const modelConfig: any = { model: "gemini-1.5-pro-latest" };
+      const modelConfig: any = { model: "gemini-3.1-pro-preview" };
       if (profile && profile.systemInstruction) {
         modelConfig.systemInstruction = profile.systemInstruction;
       }
@@ -130,10 +124,10 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
-      <div className="w-full max-w-4xl bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[calc(100vh-4rem)]">
+      <div className="w-full max-w-5xl bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[calc(100vh-4rem)]">
         
-        {/* Header Section */}
-        <div className="bg-slate-900 text-white p-6 shrink-0 flex justify-between items-center">
+        {/* Header Section / Navigation */}
+        <div className="bg-slate-900 text-white p-4 shrink-0 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>
             <h1 className="text-2xl font-semibold flex items-center gap-2">
               <BotIcon />
@@ -142,18 +136,41 @@ function App() {
             <p className="text-slate-400 text-sm mt-1">Interactive chat with custom personality profiles</p>
           </div>
           
-          <button 
-            onClick={handleClear}
-            disabled={messages.length === 0 || loading}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Clear Chat"
-          >
-            <ClearIcon />
-            <span className="hidden sm:inline">Clear</span>
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setView('chat')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                view === 'chat' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+              }`}
+            >
+              <ChatBubbleIcon />
+              <span className="hidden sm:inline">Chat</span>
+            </button>
+            <button 
+              onClick={() => setView('experiment')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                view === 'experiment' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+              }`}
+            >
+              <ExperimentIcon />
+              <span className="hidden sm:inline">Experiment Lab</span>
+            </button>
+            
+            {view === 'chat' && (
+              <button 
+                onClick={handleClear}
+                disabled={messages.length === 0 || loading}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-red-900/50 text-slate-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-2 border border-slate-700"
+                title="Clear Chat"
+              >
+                <ClearIcon />
+                <span className="hidden sm:inline">Clear</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Settings Bar */}
+        {/* Global Settings Bar (Always visible so they can set API key anywhere) */}
         <div className="bg-slate-50 border-b border-slate-200 p-4 shrink-0 flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">API Key</label>
@@ -165,83 +182,95 @@ function App() {
               className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
             />
           </div>
-          <div className="flex-1">
-            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Personality Profile</label>
-            <select 
-              value={profileId} 
-              onChange={(e) => setProfileId(e.target.value)}
-              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer"
-            >
-              {profiles.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+          
+          {view === 'chat' && (
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Personality Profile</label>
+              <select 
+                value={profileId} 
+                onChange={(e) => setProfileId(e.target.value)}
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer"
+              >
+                {profiles.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Main Content Area */}
+        {view === 'experiment' ? (
+          <div className="flex-1 overflow-y-auto bg-slate-100 p-6">
+            <ExperimentView apiKey={apiKey} profiles={profiles} />
           </div>
-        </div>
-
-        {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50 flex flex-col gap-6">
-          {error && (
-            <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200 text-sm flex items-start gap-3 mx-auto max-w-2xl w-full">
-              <ErrorIcon className="shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {messages.length === 0 && !error ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center border border-slate-200">
-                <ChatBubbleIcon />
-              </div>
-              <p>Start a conversation with Gemini</p>
-            </div>
-          ) : (
-            messages.map((msg, index) => (
-              <ChatMessage 
-                key={index} 
-                role={msg.role} 
-                content={msg.content} 
-                loading={loading && index === messages.length - 1} 
-              />
-            ))
-          )}
-          <div ref={messagesEndRef} className="h-4 shrink-0" />
-        </div>
-
-        {/* Input Area */}
-        <div className="p-4 bg-white border-t border-slate-200 shrink-0">
-          <form onSubmit={handleSubmit} className="flex gap-3 items-end max-w-4xl mx-auto">
-            <div className="flex-1 relative">
-              <textarea 
-                value={prompt} 
-                onChange={(e) => setPrompt(e.target.value)} 
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    if(prompt.trim()) handleSubmit(e as any);
-                  }
-                }}
-                placeholder="Message Gemini... (Press Enter to send, Shift+Enter for new line)"
-                className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-none min-h-[52px] max-h-32"
-                rows={prompt.split('\n').length > 1 ? Math.min(prompt.split('\n').length, 5) : 1}
-              />
-            </div>
-            <button 
-              type="submit" 
-              disabled={loading || !prompt.trim()}
-              className="h-[52px] px-6 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center min-w-[100px]"
-            >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span>Send</span>
-                  <SendIcon />
+        ) : (
+          <>
+            {/* Chat Area */}
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-50 flex flex-col gap-6">
+              {error && (
+                <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200 text-sm flex items-start gap-3 mx-auto max-w-2xl w-full">
+                  <ErrorIcon className="shrink-0 mt-0.5" />
+                  <span>{error}</span>
                 </div>
               )}
-            </button>
-          </form>
-        </div>
+
+              {messages.length === 0 && !error ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center border border-slate-200">
+                    <ChatBubbleIcon />
+                  </div>
+                  <p>Start a conversation with Gemini</p>
+                </div>
+              ) : (
+                messages.map((msg, index) => (
+                  <ChatMessage 
+                    key={index} 
+                    role={msg.role} 
+                    content={msg.content} 
+                    loading={loading && index === messages.length - 1} 
+                  />
+                ))
+              )}
+              <div ref={messagesEndRef} className="h-4 shrink-0" />
+            </div>
+
+            {/* Input Area */}
+            <div className="p-4 bg-white border-t border-slate-200 shrink-0">
+              <form onSubmit={handleSubmit} className="flex gap-3 items-end max-w-4xl mx-auto">
+                <div className="flex-1 relative">
+                  <textarea 
+                    value={prompt} 
+                    onChange={(e) => setPrompt(e.target.value)} 
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if(prompt.trim()) handleSubmit(e as any);
+                      }
+                    }}
+                    placeholder="Message Gemini... (Press Enter to send, Shift+Enter for new line)"
+                    className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors resize-none min-h-[52px] max-h-32"
+                    rows={prompt.split('\n').length > 1 ? Math.min(prompt.split('\n').length, 5) : 1}
+                  />
+                </div>
+                <button 
+                  type="submit" 
+                  disabled={loading || !prompt.trim()}
+                  className="h-[52px] px-6 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center min-w-[100px]"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span>Send</span>
+                      <SendIcon />
+                    </div>
+                  )}
+                </button>
+              </form>
+            </div>
+          </>
+        )}
 
       </div>
     </div>
