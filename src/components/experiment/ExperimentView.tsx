@@ -205,7 +205,7 @@ export function ExperimentView({ apiKey, profiles, modelId }: ExperimentViewProp
                  onClick={handleRunTest}
                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2"
                >
-                 Run Blind Test (4 Profiles)
+                 Run Blind Test ({profiles.length} Profiles)
                </button>
              </div>
           </div>
@@ -214,7 +214,7 @@ export function ExperimentView({ apiKey, profiles, modelId }: ExperimentViewProp
         {isGeneratingResponses && (
            <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-slate-500 gap-4">
               <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
-              <p>Generating responses from all 4 profiles in parallel...</p>
+              <p>Generating responses from all {profiles.length} profiles in parallel...</p>
            </div>
         )}
 
