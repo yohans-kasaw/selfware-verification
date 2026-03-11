@@ -31,6 +31,7 @@ export function ExperimentView({ apiKey, profiles, modelId, onExperimentComplete
   const [totalScores, setTotalScores] = useState<Record<string, RatingCriteria>>({});
   const [history, setHistory] = useState<ExperimentRoundResult[]>([]);
   const [isComplete, setIsComplete] = useState(false);
+  const [experimentId, setExperimentId] = useState<string | null>(null);
 
   // Load initial record if viewing past experiment
   useEffect(() => {
@@ -39,6 +40,7 @@ export function ExperimentView({ apiKey, profiles, modelId, onExperimentComplete
       setHistory(initialRecord.rounds);
       setTotalScores(initialRecord.totalScores);
       setTopic(initialRecord.topic);
+      setExperimentId(initialRecord.id);
     } else {
       setIsComplete(false);
       setRound(1);
@@ -50,7 +52,7 @@ export function ExperimentView({ apiKey, profiles, modelId, onExperimentComplete
       
       const initialScores: Record<string, RatingCriteria> = {};
       profiles.forEach(p => { 
-        initialScores[p.id] = { clarity: 0, depth: 0, engagement: 0, enjoyment: 0, overall: 0 }; 
+        initialScores[p.id] = { clarity: 0, enjoyment: 0, vibes: 0 }; 
       });
       setTotalScores(initialScores);
     }
@@ -153,7 +155,7 @@ Return ONLY a valid JSON array of objects. No markdown formatting, no code block
       // Initialize ratings state for this round
       const newRatings: Record<string, RatingCriteria> = {};
       shuffled.forEach(r => { 
-        newRatings[r.profileId] = { clarity: 0, depth: 0, engagement: 0, enjoyment: 0, overall: 0 }; 
+        newRatings[r.profileId] = { clarity: 0, enjoyment: 0, vibes: 0 }; 
       });
       setRatings(newRatings);
       
@@ -174,7 +176,7 @@ Return ONLY a valid JSON array of objects. No markdown formatting, no code block
     const currentProfileId = responses[currentCardIndex].profileId;
     const r = ratings[currentProfileId];
     if (!r) return false;
-    return r.clarity > 0 && r.depth > 0 && r.engagement > 0 && r.enjoyment > 0 && r.overall > 0;
+    return r.clarity > 0 && r.enjoyment > 0 && r.vibes > 0;
   };
 
   const areAllRatingsFilled = () => {
@@ -182,7 +184,7 @@ Return ONLY a valid JSON array of objects. No markdown formatting, no code block
     return responses.every(r => {
       const crit = ratings[r.profileId];
       if (!crit) return false;
-      return crit.clarity > 0 && crit.depth > 0 && crit.engagement > 0 && crit.enjoyment > 0 && crit.overall > 0;
+      return crit.clarity > 0 && crit.enjoyment > 0 && crit.vibes > 0;
     });
   };
 
@@ -196,14 +198,12 @@ Return ONLY a valid JSON array of objects. No markdown formatting, no code block
     const newTotalScores = { ...totalScores };
     Object.keys(ratings).forEach(id => {
       if (!newTotalScores[id]) {
-        newTotalScores[id] = { clarity: 0, depth: 0, engagement: 0, enjoyment: 0, overall: 0 };
+        newTotalScores[id] = { clarity: 0, enjoyment: 0, vibes: 0 };
       }
       const r = ratings[id];
       newTotalScores[id].clarity += r.clarity;
-      newTotalScores[id].depth += r.depth;
-      newTotalScores[id].engagement += r.engagement;
       newTotalScores[id].enjoyment += r.enjoyment;
-      newTotalScores[id].overall += r.overall;
+      newTotalScores[id].vibes += r.vibes;
     });
     setTotalScores(newTotalScores);
 
@@ -236,8 +236,11 @@ Return ONLY a valid JSON array of objects. No markdown formatting, no code block
       // Complete experiment
       setIsComplete(true);
       
+      const newExperimentId = crypto.randomUUID();
+      setExperimentId(newExperimentId);
+
       const record: ExperimentRecord = {
-        id: crypto.randomUUID(),
+        id: newExperimentId,
         date: new Date().toISOString(),
         topic: topic,
         modelId,
@@ -264,9 +267,12 @@ Return ONLY a valid JSON array of objects. No markdown formatting, no code block
   if (isComplete) {
     return (
        <ExperimentResults 
+         experimentId={experimentId}
          scores={totalScores} 
          roundHistory={history} 
-         onGoHome={() => onExperimentComplete(null as any)} 
+         onGoHome={() => onExperimentComplete(null as any)}
+         apiKey={apiKey}
+         modelId={modelId}
        />
     );
   }

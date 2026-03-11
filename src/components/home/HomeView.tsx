@@ -14,7 +14,11 @@ export function HomeView({ onStartNew, onViewExperiment }: HomeViewProps) {
     const saved = localStorage.getItem('experiment_history');
     if (saved) {
       try {
-        setHistory(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // Filter out any null/invalid records that might have been saved
+          setHistory(parsed.filter(r => r && r.id && r.rounds));
+        }
       } catch (e) {
         console.error("Failed to parse experiment history", e);
       }

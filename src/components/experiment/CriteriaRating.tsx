@@ -12,10 +12,8 @@ export function CriteriaRating({ initialRatings, onRate, disabled = false }: Cri
   const [ratings, setRatings] = useState<RatingCriteria>(
     initialRatings || {
       clarity: 0,
-      depth: 0,
-      engagement: 0,
       enjoyment: 0,
-      overall: 0,
+      vibes: 0,
     }
   );
 
@@ -26,10 +24,8 @@ export function CriteriaRating({ initialRatings, onRate, disabled = false }: Cri
   };
 
   const criteriaList = [
-    { key: 'overall' as const, label: 'Overall' },
+    { key: 'vibes' as const, label: 'Vibes' },
     { key: 'clarity' as const, label: 'Clarity' },
-    { key: 'depth' as const, label: 'Depth' },
-    { key: 'engagement' as const, label: 'Engagement' },
     { key: 'enjoyment' as const, label: 'Enjoyment' },
   ];
 
@@ -38,7 +34,7 @@ export function CriteriaRating({ initialRatings, onRate, disabled = false }: Cri
     if (initialRatings) {
       setRatings(initialRatings);
     } else {
-      setRatings({ clarity: 0, depth: 0, engagement: 0, enjoyment: 0, overall: 0 });
+      setRatings({ clarity: 0, enjoyment: 0, vibes: 0 });
     }
   }, [initialRatings]);
 

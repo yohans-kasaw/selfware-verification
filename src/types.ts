@@ -13,10 +13,10 @@ export type AppView = 'home' | 'chat' | 'experiment';
 
 export interface RatingCriteria {
   clarity: number;
-  depth: number;
-  engagement: number;
+
+
   enjoyment: number;
-  overall: number;
+  vibes: number;
 }
 
 export interface ExperimentRoundResult {

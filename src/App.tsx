@@ -267,10 +267,12 @@ function App() {
                modelId={modelId} 
                initialRecord={selectedExperiment}
                onExperimentComplete={(record) => {
-                 const currentHistoryStr = localStorage.getItem('experiment_history');
-                 const currentHistory = currentHistoryStr ? JSON.parse(currentHistoryStr) : [];
-                 const updatedHistory = [record, ...currentHistory];
-                 localStorage.setItem('experiment_history', JSON.stringify(updatedHistory));
+                 if (record) { // Only save if a record is provided
+                   const currentHistoryStr = localStorage.getItem('experiment_history');
+                   const currentHistory = currentHistoryStr ? JSON.parse(currentHistoryStr) : [];
+                   const updatedHistory = [record, ...currentHistory];
+                   localStorage.setItem('experiment_history', JSON.stringify(updatedHistory));
+                 }
                  setView('home');
                }}
             />
