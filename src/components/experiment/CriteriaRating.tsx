@@ -51,7 +51,7 @@ export function CriteriaRating({ initialRatings, onRate, disabled = false }: Cri
           </div>
           <div className="shrink-0 self-start sm:self-center">
             <StarRating
-              initialRating={ratings[key]}
+              rating={ratings[key]}
               onRate={(val) => handleRate(key, val)}
               disabled={disabled}
             />

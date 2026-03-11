@@ -3,14 +3,13 @@ import { StarIcon } from '../Icons';
 
 interface StarRatingProps {
   maxStars?: number;
-  initialRating?: number;
+  rating?: number;
   onRate: (rating: number) => void;
   disabled?: boolean;
 }
 
-export function StarRating({ maxStars = 5, initialRating = 0, onRate, disabled = false }: StarRatingProps) {
+export function StarRating({ maxStars = 5, rating = 0, onRate, disabled = false }: StarRatingProps) {
   const [hover, setHover] = useState(0);
-  const [rating, setRating] = useState(initialRating);
 
   return (
     <div className="flex space-x-1">
@@ -27,12 +26,11 @@ export function StarRating({ maxStars = 5, initialRating = 0, onRate, disabled =
             `}
             onClick={() => {
               if (!disabled) {
-                setRating(starValue);
                 onRate(starValue);
               }
             }}
             onMouseEnter={() => !disabled && setHover(starValue)}
-            onMouseLeave={() => !disabled && setHover(rating)}
+            onMouseLeave={() => !disabled && setHover(0)}
             disabled={disabled}
           >
             <StarIcon className="w-6 h-6" filled={starValue <= (hover || rating)} />
