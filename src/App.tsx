@@ -4,7 +4,9 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { BotIcon, ClearIcon, ErrorIcon, SendIcon, ChatBubbleIcon, ExperimentIcon } from './components/Icons';
 import { ChatMessage } from './components/ChatMessage';
 import { ExperimentView } from './components/experiment/ExperimentView';
-import type { Profile, Message, AppView } from './types';
+import { HomeView } from './components/home/HomeView';
+import { Home } from 'lucide-react';
+import type { Profile, Message, AppView, ExperimentRecord } from './types';
 
 function App() {
   const availableModels = (import.meta.env.VITE_AVAILABLE_MODELS || 'gemini-3.1-pro-preview').split(',').map((m: string) => m.trim()).filter(Boolean);
@@ -31,13 +33,15 @@ function App() {
     }
   }, [modelId]);
 
-  const [view, setView] = useState<AppView>('experiment');
+  const [view, setView] = useState<AppView>('home');
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [profileId, setProfileId] = useState('none');
   const [error, setError] = useState('');
   const [profiles, setProfiles] = useState<Profile[]>([{ id: 'none', name: 'None (Default)', systemInstruction: '' }]);
+  const [selectedExperiment, setSelectedExperiment] = useState<ExperimentRecord | null>(null);
+
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -161,7 +165,16 @@ function App() {
           
           <div className="flex gap-2">
             <button 
-              onClick={() => setView('experiment')}
+              onClick={() => { setView('home'); setSelectedExperiment(null); }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                view === 'home' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+              }`}
+            >
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline">Home</span>
+            </button>
+            <button 
+              onClick={() => { setView('experiment'); setSelectedExperiment(null); }}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 view === 'experiment' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
               }`}
@@ -170,7 +183,7 @@ function App() {
               <span className="hidden sm:inline">Experiment Lab</span>
             </button>
             <button 
-              onClick={() => setView('chat')}
+              onClick={() => { setView('chat'); setSelectedExperiment(null); }}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 view === 'chat' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
               }`}
@@ -236,9 +249,31 @@ function App() {
         </div>
 
         {/* Main Content Area */}
-        {view === 'experiment' ? (
+        {view === 'home' ? (
           <div className="flex-1 overflow-y-auto bg-slate-100 p-6">
-            <ExperimentView apiKey={apiKey} profiles={profiles} modelId={modelId} />
+             <HomeView 
+                onStartNew={() => setView('experiment')} 
+                onViewExperiment={(record) => {
+                  setSelectedExperiment(record);
+                  setView('experiment');
+                }} 
+             />
+          </div>
+        ) : view === 'experiment' ? (
+          <div className="flex-1 overflow-y-auto bg-slate-100 p-6">
+            <ExperimentView 
+               apiKey={apiKey} 
+               profiles={profiles} 
+               modelId={modelId} 
+               initialRecord={selectedExperiment}
+               onExperimentComplete={(record) => {
+                 const currentHistoryStr = localStorage.getItem('experiment_history');
+                 const currentHistory = currentHistoryStr ? JSON.parse(currentHistoryStr) : [];
+                 const updatedHistory = [record, ...currentHistory];
+                 localStorage.setItem('experiment_history', JSON.stringify(updatedHistory));
+                 setView('home');
+               }}
+            />
           </div>
         ) : (
           <>

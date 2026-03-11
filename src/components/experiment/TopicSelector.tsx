@@ -1,125 +1,76 @@
 import { useState } from 'react';
-
-const PREDEFINED_TOPICS = {
-  'Philosophy': ['Modern Philosophy', 'Ethics', 'Existentialism', 'Ancient Greek Philosophy'],
-  'Science': ['Quantum Physics', 'Astrophysics', 'Biology', 'Neuroscience'],
-  'Creative Writing': ['Sci-Fi Story', 'Fantasy Worldbuilding', 'Poetry', 'Character Development'],
-  'Literature': ['Classic Novels', 'Modern Poetry', 'Literary Analysis', 'Shakespeare'],
-  'Technology': ['Artificial Intelligence', 'Cybersecurity', 'Software Engineering', 'Future Tech']
-};
+import { Sparkles, Wand2 } from 'lucide-react';
+import { generateRandomTopic } from '../../lib/gemini';
 
 interface TopicSelectorProps {
-  onSelect: (topic: string, subtopic: string, wordLimit: number) => void;
+  onStartExperiment: (topic: string, wordLimit: number) => void;
   disabled?: boolean;
+  apiKey: string;
 }
 
-export function TopicSelector({ onSelect, disabled }: TopicSelectorProps) {
-  const [mode, setMode] = useState<'preset' | 'custom'>('preset');
-  const [selectedTopic, setSelectedTopic] = useState(Object.keys(PREDEFINED_TOPICS)[0]);
-  const [selectedSubtopic, setSelectedSubtopic] = useState(PREDEFINED_TOPICS[Object.keys(PREDEFINED_TOPICS)[0] as keyof typeof PREDEFINED_TOPICS][0]);
-  
-  const [customTopic, setCustomTopic] = useState('');
-  const [customSubtopic, setCustomSubtopic] = useState('');
+export function TopicSelector({ onStartExperiment, disabled, apiKey }: TopicSelectorProps) {
+  const [topic, setTopic] = useState('');
   const [wordLimit, setWordLimit] = useState(120);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleTopicChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newTopic = e.target.value;
-    setSelectedTopic(newTopic);
-    setSelectedSubtopic(PREDEFINED_TOPICS[newTopic as keyof typeof PREDEFINED_TOPICS][0]);
+  const handleGenerateRandom = async () => {
+    if (!apiKey) {
+      alert("Please enter an API key first.");
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const randomTopic = await generateRandomTopic(apiKey);
+      setTopic(randomTopic);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to generate a random topic.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const handleConfirm = () => {
-    if (mode === 'preset') {
-      onSelect(selectedTopic, selectedSubtopic, wordLimit);
-    } else {
-      if (customTopic.trim() && customSubtopic.trim()) {
-        onSelect(customTopic.trim(), customSubtopic.trim(), wordLimit);
-      }
+  const handleStart = () => {
+    if (topic.trim()) {
+      onStartExperiment(topic.trim(), wordLimit);
     }
   };
 
   return (
     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-      <h3 className="text-lg font-semibold text-slate-800 mb-4">Choose a Topic</h3>
-      
-      <div className="flex gap-4 mb-6 border-b border-slate-200 pb-2">
-        <button
-          onClick={() => setMode('preset')}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-            mode === 'preset' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          Pre-defined
-        </button>
-        <button
-          onClick={() => setMode('custom')}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-            mode === 'custom' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          Custom Input
-        </button>
-      </div>
+      <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+        <Sparkles className="w-5 h-5 text-emerald-500" />
+        Choose an Experiment Topic
+      </h3>
 
       <div className="space-y-4">
-        {mode === 'preset' ? (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Topic</label>
-              <select
-                value={selectedTopic}
-                onChange={handleTopicChange}
-                disabled={disabled}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {Object.keys(PREDEFINED_TOPICS).map(topic => (
-                  <option key={topic} value={topic}>{topic}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Subtopic</label>
-              <select
-                value={selectedSubtopic}
-                onChange={(e) => setSelectedSubtopic(e.target.value)}
-                disabled={disabled}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {PREDEFINED_TOPICS[selectedTopic as keyof typeof PREDEFINED_TOPICS].map(sub => (
-                  <option key={sub} value={sub}>{sub}</option>
-                ))}
-              </select>
-            </div>
-          </>
-        ) : (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Custom Topic</label>
-              <input
-                type="text"
-                value={customTopic}
-                onChange={(e) => setCustomTopic(e.target.value)}
-                placeholder="e.g., Music Theory"
-                disabled={disabled}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Custom Subtopic</label>
-              <input
-                type="text"
-                value={customSubtopic}
-                onChange={(e) => setCustomSubtopic(e.target.value)}
-                placeholder="e.g., Jazz Harmony"
-                disabled={disabled}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </>
-        )}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            What concept should the AI personalities explain?
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="e.g., The philosophical implications of artificial gravity"
+              disabled={disabled || isGenerating}
+              className="flex-1 px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <button
+              onClick={handleGenerateRandom}
+              disabled={disabled || isGenerating || !apiKey}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap disabled:opacity-50"
+              title="Generate a random topic using Gemini"
+            >
+              <Wand2 className="w-4 h-4" />
+              {isGenerating ? "Generating..." : "Random Topic"}
+            </button>
+          </div>
+        </div>
 
-        <div className="pt-4 border-t border-slate-200 mt-2">
-          <label className="block text-sm font-medium text-slate-700 mb-1">Word Limit of Response</label>
+        <div className="pt-4 border-t border-slate-100 mt-2">
+          <label className="block text-sm font-medium text-slate-700 mb-1">Target Word Limit per Response</label>
           <input
             type="number"
             min="10"
@@ -127,16 +78,16 @@ export function TopicSelector({ onSelect, disabled }: TopicSelectorProps) {
             value={wordLimit}
             onChange={(e) => setWordLimit(parseInt(e.target.value) || 120)}
             disabled={disabled}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-1/3 min-w-[120px] px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
 
         <button
-          onClick={handleConfirm}
-          disabled={disabled || (mode === 'custom' && (!customTopic.trim() || !customSubtopic.trim()))}
-          className="w-full mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+          onClick={handleStart}
+          disabled={disabled || !topic.trim()}
+          className="w-full mt-6 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-bold transition-all shadow-sm"
         >
-          Generate Prompt
+          Start Experiment
         </button>
       </div>
     </div>

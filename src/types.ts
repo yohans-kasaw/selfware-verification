@@ -9,4 +9,28 @@ export interface Message {
   content: string;
 }
 
-export type AppView = 'chat' | 'experiment';
+export type AppView = 'home' | 'chat' | 'experiment';
+
+export interface RatingCriteria {
+  clarity: number;
+  depth: number;
+  engagement: number;
+  enjoyment: number;
+  overall: number;
+}
+
+export interface ExperimentRoundResult {
+  round: number;
+  ratings: Record<string, RatingCriteria>; // profileId -> ratings
+  prompts: Record<string, string>; // profileId -> prompt used
+  responses: Record<string, string>; // profileId -> response text
+}
+
+export interface ExperimentRecord {
+  id: string;
+  date: string;
+  topic: string;
+  modelId: string;
+  rounds: ExperimentRoundResult[];
+  totalScores: Record<string, RatingCriteria>; // Accumulated scores per profile
+}
