@@ -20,7 +20,7 @@ export function ExperimentView({ apiKey, profiles, modelId, onExperimentComplete
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   
   // Responses and rating state
-  const [responses, setResponses] = useState<Array<{ profileId: string; content: string; prompt: string }>>([]);
+  const [responses, setResponses] = useState<Array<{ profileId: string; content: string; prompt: string; title: string }>>([]);
   const [isGeneratingResponses, setIsGeneratingResponses] = useState(false);
   const [ratings, setRatings] = useState<Record<string, RatingCriteria>>({});
   
@@ -76,11 +76,14 @@ export function ExperimentView({ apiKey, profiles, modelId, onExperimentComplete
       
 The topic is: "${mainTopic}".
 
-Generate exactly 5 distinct, highly educational prompts/questions about different specific aspects or angles of this topic.
-The prompts must ask the AI to explain a concept or educate the user. Do NOT generate argumentative, persuasive, or debate-style prompts.
+Generate exactly 5 distinct, highly educational scenarios. Each scenario must have two properties:
+1.  "title": A short, engaging title (5-10 words) for the scenario.
+2.  "prompt": A detailed prompt/question that asks the AI to explain a specific concept or educate the user.
+
+Do NOT generate argumentative, persuasive, or debate-style prompts.
 Specify in each prompt that the output should not exceed ${targetWordLimit} words.
 
-Return ONLY a valid JSON array of strings, with exactly 5 strings. No markdown formatting, no code blocks, just the JSON array. Example: ["Explain X...", "How does Y work...", ...]`;
+Return ONLY a valid JSON array of objects. No markdown formatting, no code blocks, just the JSON array. Example: [{"title": "The Nature of Spacetime", "prompt": "Explain the concept of spacetime..."}, ...]`;
       
       const result = await model.generateContent(promptInstruction);
       let text = result.response.text().trim();
@@ -93,8 +96,8 @@ Return ONLY a valid JSON array of strings, with exactly 5 strings. No markdown f
       }
 
       const promptsArray = JSON.parse(text);
-      if (!Array.isArray(promptsArray) || promptsArray.length !== 5) {
-        throw new Error("Invalid format returned from Gemini");
+      if (!Array.isArray(promptsArray) || promptsArray.length !== 5 || !promptsArray[0].title || !promptsArray[0].prompt) {
+        throw new Error("Invalid format returned from Gemini. Expected an array of {title, prompt} objects.");
       }
       
       // Immediately run the test
@@ -108,15 +111,12 @@ Return ONLY a valid JSON array of strings, with exactly 5 strings. No markdown f
     }
   };
 
-  const runBlindTest = async (prompts: string[]) => {
+  const runBlindTest = async (prompts: Array<{title: string, prompt: string}>) => {
     setIsGeneratingResponses(true);
     setResponses([]);
 
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
-      
-      // Assign a different prompt to each profile (up to 5 profiles, if more it will wrap around or break if less)
-      // For now, assume profiles.length <= 5 or handle gracefully
       
       const generatePromises = profiles.map(async (profile, idx) => {
         const modelConfig: any = { model: modelId };
@@ -124,19 +124,21 @@ Return ONLY a valid JSON array of strings, with exactly 5 strings. No markdown f
           modelConfig.systemInstruction = profile.systemInstruction;
         }
         
-        const assignedPrompt = prompts[idx % prompts.length];
+        const scenario = prompts[idx % prompts.length];
         const model = genAI.getGenerativeModel(modelConfig);
         try {
-           const result = await model.generateContent(assignedPrompt);
+           const result = await model.generateContent(scenario.prompt);
            return {
              profileId: profile.id,
-             prompt: assignedPrompt,
+             prompt: scenario.prompt,
+             title: scenario.title,
              content: result.response.text()
            };
         } catch(e) {
           return {
              profileId: profile.id,
-             prompt: assignedPrompt,
+             prompt: scenario.prompt,
+             title: scenario.title,
              content: "Error generating response: " + (e as Error).message
            };
         }
@@ -334,7 +336,7 @@ Return ONLY a valid JSON array of strings, with exactly 5 strings. No markdown f
                 
                 {/* Top: Title & Response Content */}
                 <div className="p-6 lg:p-8">
-                  <h2 className="text-2xl font-bold text-slate-800 mb-6 border-b border-slate-100 pb-4">{topic}</h2>
+                  <h2 className="text-2xl font-bold text-slate-800 mb-6 border-b border-slate-100 pb-4">{responses[currentCardIndex].title}</h2>
                   <div className="prose prose-sm md:prose-base prose-slate max-w-none">
                     <div dangerouslySetInnerHTML={{ __html: responses[currentCardIndex].content.replace(/\n/g, '<br/>') }} />
                   </div>
